@@ -1,6 +1,11 @@
 #include <stdio.h>
-int main()
+#include <sys/stat.h>
+
+
+int main(int argc, char *argv[])
 {
-  printf ("Hello World!\n");
-  return 0;
+  if(argc < 3)
+  {
+    printf("Użycie programu: \n demon <katalog źródłowy> <katalog docelowy> [argumenty opcjonalne]");
+  }
 }
