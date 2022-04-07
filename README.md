@@ -1,5 +1,5 @@
 # DirectorySyncDaemon
-1. Sprawdzanie czy argumenty są ścieżkami do katalogów(błąd jeśli nie)
+1. Sprawdzanie czy argumenty są ścieżkami do katalogów(błąd jeśli nie) :white_check_mark:
 2. Opcjonalny argument do ustawienia długości oczekiwania demona (bazowo 5 min)
 3. Porównanie katalogu źródłowego z docelowym
     - ignorowanie plików innych niż zwykłe
