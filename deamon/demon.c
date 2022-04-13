@@ -1,7 +1,9 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <dirent.h>
 
 #include "../headers/checkdirs.h"
 
@@ -12,16 +14,16 @@ int main(int argc, char *argv[])
 
   if(argc < 3)
   {
-    printf("Użycie programu: \n demon <katalog źródłowy> <katalog docelowy> [argumenty opcjonalne]\n");
+    printf("Użycie programu: \n demon <katalog źródłowy> <katalog docelowy> [opcje]\n");
     return 1;
   }
 
-  if(argc > 3 && argv[4][0] == '-')
+  if(argc > 3 && argv[3][0] == '-')
   {
-    switch(argv[4][1])
+    switch(argv[3][1])
     {
       case 't': //set deamon sleep time
-        time = atoi(argv[5])*60;
+        time = atoi(argv[4])*60;
         break;
       default:
         break;
@@ -29,7 +31,12 @@ int main(int argc, char *argv[])
   }
 
   if(checkdirs(argv) != 0)
-    printf("essa\n");
+    return 1;
 
-  printf("Dobre\n");
+  daemon(1,0);
+  sleep(time/60);
+
+  DIR *source = opendir(argv[1]);
+  DIR *target = opendir(argv[2]);
+
 }
