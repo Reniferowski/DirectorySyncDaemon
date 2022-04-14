@@ -6,6 +6,7 @@
 #include <dirent.h>
 
 #include "../headers/checkdirs.h"
+#include "../headers/fileoperations.h"
 
 
 int main(int argc, char *argv[])
@@ -33,10 +34,26 @@ int main(int argc, char *argv[])
   if(checkdirs(argv) != 0)
     return 1;
 
-  daemon(1,0);
-  sleep(time/60);
+  //daemon(1,0);
+  //sleep(time/60);
 
   DIR *source = opendir(argv[1]);
   DIR *target = opendir(argv[2]);
+  int sCount = 0; // count files in source dir
+  int tCount = 0; // count files in target dir
+  
+  struct dirent *sEntry;
 
+  while((sEntry = readdir(source)) != NULL)
+  {
+    //sCount++;
+    if(sEntry->d_type != 4)
+      copy(argv[1], argv[2], sEntry->d_name);
+  }
+  
+
+  //printf("%d %s\n",sEntry->d_type, sEntry->d_name);
+  //printf("%d", sCount);
+
+  //d_type: 8 - file, 4 - dir
 }
