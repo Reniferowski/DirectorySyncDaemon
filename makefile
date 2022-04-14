@@ -1,2 +1,2 @@
-/deamon/demon: deamon/demon.c deamon/checkdirs.c
-	gcc deamon/demon.c deamon/checkdirs.c -o demon
+/deamon/demon: deamon/demon.c deamon/checkdirs.c deamon/fileoperations.c
+	gcc deamon/demon.c deamon/checkdirs.c deamon/fileoperations.c -o demon
