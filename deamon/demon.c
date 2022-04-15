@@ -44,11 +44,17 @@ int main(int argc, char *argv[])
   
   struct dirent *sEntry;
 
+  char *fp[2];
   while((sEntry = readdir(source)) != NULL)
   {
+    getFilesPath(argv[1], argv[2], sEntry->d_name, fp);
+
     //sCount++;
-    if(sEntry->d_type != 4)
-      copy(argv[1], argv[2], sEntry->d_name);
+    if(sEntry->d_type != 4 && cmpModificationDate(fp) == 1)
+    {
+      printf("copied");
+      copy(fp);
+    }
   }
   
 
