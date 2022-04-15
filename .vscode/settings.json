@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "checkdirs.h": "c"
+        "checkdirs.h": "c",
+        "types.h": "c"
     }
 }
