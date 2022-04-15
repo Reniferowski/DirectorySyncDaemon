@@ -5,40 +5,67 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <string.h>
+#include <fcntl.h>
+#include <time.h>
 
 #define BUFFER 1024
 
-int copy(char *source, char *destination, char *filename)
+void getFilesPath(char *source, char *destination, char *filename, char**paths)
 {
-    char buf[BUFFER];
-
     int x = strlen(source) + strlen(filename);
     int y = strlen(destination) + strlen(filename);
 
-    char fileSrc[x];
-    char fileDst[y];
+    paths[0] = strdup(source);
+    paths[1] = strdup(destination);
 
-    char *fn = strcpy(fn, filename);
-
-    strcpy(fileSrc, source);
-    strcpy(fileDst, destination);
-
-    strcat(fileSrc, "/");
-    strcat(fileDst, "/");
+    strcat(paths[0], "/");
+    strcat(paths[1], "/");
     
-    strcat(fileDst, fn);
+    strcat(paths[1], filename);
+    strcat(paths[0], filename);
 
-    printf("%s\n",fileSrc);
-    printf("%s\n",fileDst);
+}
 
-    strcat(fileSrc, fn);
-    
+int copy(char **paths)
+{
+    char buf[BUFFER];
+
+    int src = open(paths[0], O_RDONLY);
+    int dst = creat(paths[1], 0666);
+
+    int tmp;
+
+    while(1)
+    {
+        tmp = read(src, buf, BUFFER);
+        if(tmp == 0) break;
+        write(dst, buf, tmp);
+    }
+
+    close(src);
+    close(dst);
+
+    free(paths[0]);
+    free(paths[1]);
+
+    //printf("Copying succesful!");
+}
+
+int cmpModificationDate(char **paths)
+{
+    struct stat sbSrc;
+    struct stat sbDst;
 
 
-    //printf("%s\n", fileSrc);
-    //printf("%s\n",fileSrc);
+    if(stat(paths[0], &sbSrc) != 0 || stat(paths[1], &sbDst) != 0)
+    {
+        return 2;
+    }
 
-    
+    if(sbSrc.st_mtime > sbDst.st_mtime)
+        return 1;
+    else
+        return 0;
 
-
+    return 2;
 }
