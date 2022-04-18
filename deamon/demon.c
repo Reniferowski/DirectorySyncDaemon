@@ -4,10 +4,15 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <signal.h>
 
 #include "../headers/checkdirs.h"
 #include "../headers/fileoperations.h"
 
+void sigusr_handler(int sig)//SIGUSR1 handler
+{
+  printf("Detected sig");
+}
 
 int main(int argc, char *argv[])
 {
@@ -34,15 +39,18 @@ int main(int argc, char *argv[])
   if(checkdirs(argv) != 0)
     return 1;
 
-  //daemon(1,0);
+  daemon(1,0);
+
   int *fileCount;
   DIR *source, *target;
   struct dirent *sEntry;
   char *fp[2];//files path holder
 
+  signal(SIGUSR1, sigusr_handler);
+
   while(1)
   {
-    sleep(time/8);
+    sleep(time);
     source = opendir(argv[1]);
     target = opendir(argv[2]);
     countFiles(source, target, fileCount);//number of src files, and number of dst files
