@@ -7,4 +7,6 @@ int* countFiles(DIR* src, DIR* dst, int *count);
 
 void deleteExcessiveFiles(DIR* src, DIR* dst, char* argv[]);
 
+int checkExistence(DIR *dst, char *filename);
+
 #endif

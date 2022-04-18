@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -101,4 +102,20 @@ void deleteExcessiveFiles(DIR* src, DIR* dst, char *argv[])
     }
     rewinddir(src);
     rewinddir(dst);
+}
+
+int checkExistence(DIR *dst, char *filename)
+{
+    struct dirent *dEnt;
+
+    while((dEnt = readdir(dst)) != NULL)
+    {
+        if(dEnt->d_type != 4 && filename == dEnt->d_name)
+        {
+            rewinddir(dst);
+            return 0;//file exists in destination(check modification dates)
+        }
+    }
+    rewinddir(dst);
+    return 1;//file doesn't exist in destination and needs to be copied
 }
