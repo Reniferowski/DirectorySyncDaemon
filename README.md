@@ -7,7 +7,7 @@
     - plik z późniejszą datą ostatniej modyfikacji w katalogu źródłowym 
       jest aktualizowany w docelowym :white_check_mark:
     - Znalezienie pliku w katalogu docelowym, który nie znajduje się
-      w źródłowym powoduje usunięcie tego pliku
+      w źródłowym powoduje usunięcie tego pliku :white_check_mark:
 4. Budzenie demona poprzez SIGUSR1
 5. Logowanie
     - uśpienie/obudzenie
