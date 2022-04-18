@@ -3,4 +3,8 @@
 
 int checkdirs(char *argv[]);
 
+int* countFiles(DIR* src, DIR* dst, int *count);
+
+void deleteExcessiveFiles(DIR* src, DIR* dst, char* argv[]);
+
 #endif

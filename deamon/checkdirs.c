@@ -2,8 +2,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <dirent.h>
+#include <string.h>
 
 #include "../headers/checkdirs.h"
+#include "../headers/fileoperations.h"
 
 int checkdirs(char *argv[])
 {
@@ -39,4 +42,63 @@ int checkdirs(char *argv[])
     }
 
     return 0;
+}
+
+int* countFiles(DIR* src, DIR* dst, int *count)
+{   
+    struct dirent *sEnt;
+    struct dirent *dEnt;
+
+    while((sEnt = readdir(src)) != NULL)
+    {
+        if(sEnt->d_type != 4)
+            count[0]++;
+    }
+
+    while((dEnt = readdir(dst)) != NULL)
+    {
+        if(dEnt->d_type != 4)
+            count[1]++;
+    }
+
+    rewinddir(src);
+    rewinddir(dst);
+
+    return count;
+}
+
+void deleteExcessiveFiles(DIR* src, DIR* dst, char *argv[])
+{
+    struct dirent *sEnt;
+    struct dirent *dEnt;
+
+    int count;
+
+    char *fp[2];
+
+    while((dEnt = readdir(dst)) != NULL)
+    {
+        count = 0;
+        if(dEnt->d_type != 4)
+        {
+            while((sEnt = readdir(src)) != NULL)
+            {
+                if(sEnt->d_type != 4)
+                {
+                    if(strcmp(dEnt->d_name, sEnt->d_name) == 0)
+                    {
+                        count = 2;
+                    }
+                }
+            }
+            rewinddir(src);
+            if(count == 0)
+            {
+                getFilesPath(argv[1], argv[2], dEnt->d_name, fp);
+                remove(fp[1]);
+            }
+        }
+    }
+    rewinddir(src);
+    rewinddir(dst);
 }
