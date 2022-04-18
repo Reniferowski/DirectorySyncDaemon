@@ -8,7 +8,7 @@
       jest aktualizowany w docelowym :white_check_mark:
     - Znalezienie pliku w katalogu docelowym, który nie znajduje się
       w źródłowym powoduje usunięcie tego pliku :white_check_mark:
-4. Budzenie demona poprzez SIGUSR1
+4. Budzenie demona poprzez SIGUSR1 :white_check_mark:
 5. Logowanie
     - uśpienie/obudzenie
     - kopiowanie plików
