@@ -35,29 +35,46 @@ int main(int argc, char *argv[])
     return 1;
 
   //daemon(1,0);
-  //sleep(time/60);
-
-  DIR *source = opendir(argv[1]);
-  DIR *target = opendir(argv[2]);
-  int *fileCount = countFiles(source, target, fileCount);//number of src files, and number of dst files
-  deleteExcessiveFiles(source,target,argv);
+  int *fileCount;
+  DIR *source, *target;
   struct dirent *sEntry;
-
   char *fp[2];//files path holder
-  while((sEntry = readdir(source)) != NULL)
-  {
-    getFilesPath(argv[1], argv[2], sEntry->d_name, fp);
 
-    if(sEntry->d_type != 4 && cmpModificationDate(fp) == 1)
+  while(1)
+  {
+    sleep(time/8);
+    source = opendir(argv[1]);
+    target = opendir(argv[2]);
+    countFiles(source, target, fileCount);//number of src files, and number of dst files
+    if(fileCount[1] > fileCount[0])
     {
-      printf("copied");
-      copy(fp);
+      deleteExcessiveFiles(source,target,argv);
     }
+
+    while((sEntry = readdir(source)) != NULL)
+    {
+      getFilesPath(argv[1], argv[2], sEntry->d_name, fp);
+
+      if(sEntry->d_type != 4)
+      {
+        if(checkExistence(target,sEntry->d_name) == 1)
+        {
+          copy(fp);
+        }
+        else if(checkExistence(target,sEntry->d_name) == 0 && cmpModificationDate(fp) == 1)
+        {
+          copy(fp);
+        }
+      }
+    }
+    rewinddir(source);
+    rewinddir(target);
+    printf("\nDone\n");
   }
+}
   
 
   //printf("%d %s\n",sEntry->d_type, sEntry->d_name);
   //printf("%d", sCount);
 
   //d_type: 8 - file, 4 - dir
-}
