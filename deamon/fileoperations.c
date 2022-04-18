@@ -21,8 +21,8 @@ void getFilesPath(char *source, char *destination, char *filename, char**paths)
     strcat(paths[0], "/");
     strcat(paths[1], "/");
     
-    strcat(paths[1], filename);
     strcat(paths[0], filename);
+    strcat(paths[1], filename);
 
 }
 
@@ -47,15 +47,12 @@ int copy(char **paths)
 
     free(paths[0]);
     free(paths[1]);
-
-    //printf("Copying succesful!");
 }
 
 int cmpModificationDate(char **paths)
 {
     struct stat sbSrc;
     struct stat sbDst;
-
 
     if(stat(paths[0], &sbSrc) != 0 || stat(paths[1], &sbDst) != 0)
     {

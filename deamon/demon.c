@@ -39,17 +39,15 @@ int main(int argc, char *argv[])
 
   DIR *source = opendir(argv[1]);
   DIR *target = opendir(argv[2]);
-  int sCount = 0; // count files in source dir
-  int tCount = 0; // count files in target dir
-  
+  int *fileCount = countFiles(source, target, fileCount);//number of src files, and number of dst files
+  deleteExcessiveFiles(source,target,argv);
   struct dirent *sEntry;
 
-  char *fp[2];
+  char *fp[2];//files path holder
   while((sEntry = readdir(source)) != NULL)
   {
     getFilesPath(argv[1], argv[2], sEntry->d_name, fp);
 
-    //sCount++;
     if(sEntry->d_type != 4 && cmpModificationDate(fp) == 1)
     {
       printf("copied");
