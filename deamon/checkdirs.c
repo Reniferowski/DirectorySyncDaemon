@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <string.h>
+#include <syslog.h>
 
 #include "../headers/checkdirs.h"
 #include "../headers/fileoperations.h"
@@ -68,8 +69,11 @@ int* countFiles(DIR* src, DIR* dst, int *count)
     return count;
 }
 
-void deleteExcessiveFiles(DIR* src, DIR* dst, char *argv[])
+void deleteExcessiveFiles(char *argv[])
 {
+
+    DIR *src = opendir(argv[1]);
+    DIR *dst = opendir(argv[2]);
     struct dirent *sEnt;
     struct dirent *dEnt;
 
@@ -82,6 +86,7 @@ void deleteExcessiveFiles(DIR* src, DIR* dst, char *argv[])
         count = 0;
         if(dEnt->d_type != 4)
         {
+            rewinddir(src);
             while((sEnt = readdir(src)) != NULL)
             {
                 if(sEnt->d_type != 4)
@@ -92,16 +97,18 @@ void deleteExcessiveFiles(DIR* src, DIR* dst, char *argv[])
                     }
                 }
             }
-            rewinddir(src);
             if(count == 0)
             {
                 getFilesPath(argv[1], argv[2], dEnt->d_name, fp);
+                syslog(LOG_INFO, "Daemon deleted file: %s", fp[1]);
                 remove(fp[1]);
             }
         }
     }
-    rewinddir(src);
-    rewinddir(dst);
+    free(sEnt);
+    free(dEnt);
+    closedir(src);
+    closedir(dst);
 }
 
 int checkExistence(DIR *dst, char *filename)
@@ -110,7 +117,7 @@ int checkExistence(DIR *dst, char *filename)
 
     while((dEnt = readdir(dst)) != NULL)
     {
-        if(dEnt->d_type != 4 && filename == dEnt->d_name)
+        if(dEnt->d_type != 4 && strcmp(filename, dEnt->d_name) == 0)
         {
             rewinddir(dst);
             return 0;//file exists in destination(check modification dates)

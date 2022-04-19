@@ -5,7 +5,7 @@ int checkdirs(char *argv[]);
 
 int* countFiles(DIR* src, DIR* dst, int *count);
 
-void deleteExcessiveFiles(DIR* src, DIR* dst, char* argv[]);
+void deleteExcessiveFiles(char* argv[]);
 
 int checkExistence(DIR *dst, char *filename);
 
