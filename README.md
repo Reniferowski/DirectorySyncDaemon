@@ -10,10 +10,10 @@
       w źródłowym powoduje usunięcie tego pliku :white_check_mark:
 4. Budzenie demona poprzez SIGUSR1 :white_check_mark:
 5. Logowanie
-    - uśpienie/obudzenie
-    - kopiowanie plików
-    - usuwanie plików
-    - każdy log posiada aktualną datę
+    - uśpienie/obudzenie :white_check_mark:
+    - kopiowanie plików :white_check_mark:
+    - usuwanie plików :white_check_mark:
+    - każdy log posiada aktualną datę :white_check_mark:
 
 Dodatkowo:
 1. Opcjonalny argument -R, który pozwala synchronizować również podkatalogi
