@@ -8,13 +8,15 @@
 #include <fcntl.h>
 #include <time.h>
 
+#include "../headers/checkdirs.h"
+
 #define BUFFER 1024
 
-void getFilesPath(char *source, char *destination, char *filename, char**paths)
+void getFilesPath(char *source, char *destination, char *filename, char **paths)
 {
-    int x = strlen(source) + strlen(filename);
-    int y = strlen(destination) + strlen(filename);
-
+    //int x = strlen(source) + strlen(filename);
+    //int y = strlen(destination) + strlen(filename);
+    //printf("%s\n", source);
     paths[0] = strdup(source);
     paths[1] = strdup(destination);
 
@@ -45,8 +47,6 @@ int copy(char **paths)
     close(src);
     close(dst);
 
-    free(paths[0]);
-    free(paths[1]);
 }
 
 int cmpModificationDate(char **paths)
@@ -64,5 +64,55 @@ int cmpModificationDate(char **paths)
     else
         return 0;
 
-    return 2;
+}
+
+int recursiveCopy(char **paths)
+{
+    printf("ddd\n");
+    DIR *src = opendir(paths[0]);
+    DIR *dst = opendir(paths[1]);
+    struct dirent *srcEntry;
+    char *fp[2];
+
+    while((srcEntry = readdir(src)) != NULL)
+    {
+      getFilesPath(paths[0],paths[1], srcEntry->d_name, fp);
+      printf("%s\n",fp[1]);
+      if(srcEntry->d_type != 4)
+      {
+        
+        if(checkExistence(dst,srcEntry->d_name) == 1)
+        {
+          copy(fp);
+          //syslog(LOG_INFO, "Daemon copied files.");
+        }
+        else if(checkExistence(dst,srcEntry->d_name) == 0 && cmpModificationDate(fp) == 1)
+        {
+          copy(fp);
+          //syslog(LOG_INFO, "Daemon detected modified files, updating.");
+        }
+      }
+      else
+      {
+        if(strcmp(srcEntry->d_name,".") != 0 && strcmp(srcEntry->d_name,"..") != 0)
+        {
+          
+          if(checkExistence(dst,srcEntry->d_name) == 1)
+          {
+            mkdir(fp[1], 0775);
+            recursiveCopy(fp);
+          }
+          else if(checkExistence(dst,srcEntry->d_name) == 0 && cmpModificationDate(fp) == 1)
+          {
+            mkdir(fp[1], 0775);
+            recursiveCopy(fp);
+          }
+        }
+      }
+    }
+    //free(fp[0]);
+    //free(fp[1]);
+    closedir(src);
+    closedir(dst);
+    return 1;
 }
