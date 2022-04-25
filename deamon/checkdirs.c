@@ -105,8 +105,6 @@ void deleteExcessiveFiles(char *argv[])
             }
         }
     }
-    free(sEnt);
-    free(dEnt);
     closedir(src);
     closedir(dst);
 }
@@ -117,7 +115,7 @@ int checkExistence(DIR *dst, char *filename)
 
     while((dEnt = readdir(dst)) != NULL)
     {
-        if(dEnt->d_type != 4 && strcmp(filename, dEnt->d_name) == 0)
+        if(strcmp(filename, dEnt->d_name) == 0)
         {
             rewinddir(dst);
             return 0;//file exists in destination(check modification dates)
