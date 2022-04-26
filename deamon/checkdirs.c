@@ -46,29 +46,6 @@ int checkdirs(char *argv[])
     return 0;
 }
 
-int* countFiles(DIR* src, DIR* dst, int *count)
-{   
-    struct dirent *sEnt;
-    struct dirent *dEnt;
-
-    while((sEnt = readdir(src)) != NULL)
-    {
-        if(sEnt->d_type != 4)
-            count[0]++;
-    }
-
-    while((dEnt = readdir(dst)) != NULL)
-    {
-        if(dEnt->d_type != 4)
-            count[1]++;
-    }
-
-    rewinddir(src);
-    rewinddir(dst);
-
-    return count;
-}
-
 void deleteExcessiveFiles(char *argv[])
 {
 
