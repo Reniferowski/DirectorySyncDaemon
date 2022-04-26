@@ -29,12 +29,12 @@ void getFilesPath(char *source, char *destination, char *filename, char **paths)
 
 }
 
-int copy(char **paths)
+int copy(char *source, char *destination)
 {
     char buf[BUFFER];
 
-    int src = open(paths[0], O_RDONLY);
-    int dst = creat(paths[1], 0666);
+    int src = open(source, O_RDONLY);
+    int dst = creat(destination, 0666);
 
     int tmp;
 
@@ -50,86 +50,23 @@ int copy(char **paths)
 
 }
 
-int cmpModificationDate(char **paths)
+int cmpModificationDate(char *source, char *destination)
 {
     struct stat sbSrc;
     struct stat sbDst;
 
-    if(stat(paths[0], &sbSrc) != 0 || stat(paths[1], &sbDst) != 0)
+    if(stat(source, &sbSrc) != 0 || stat(destination, &sbDst) != 0)
     {
-        return 2;
+        return 3;
     }
 
     if(sbSrc.st_mtime > sbDst.st_mtime)
         return 1;
+    else if(sbSrc.st_mtime == sbDst.st_mtime)
+        return 2;
     else
         return 0;
 
-}
-
-void recursiveCopy(char **paths)
-{
-    int count = 0;
-    printf("%s\n", paths[0]);
-    //printf("%s\n", paths[1]);
-    DIR *src = opendir(paths[0]);
-    //if(!(src = opendir(paths[0])))
-    //    return;
-    //printf("ddd\n");
-    //DIR *dst = opendir(paths[1]);
-    struct dirent *srcEntry;
-    char *fp[2];
-    // while((srcEntry = readdir(src)) != NULL)
-    // {
-    //   if(srcEntry->d_type == 4)
-    //     count++;
-    // }
-
-    // printf("%d\n", count);
-
-    // rewinddir(src);
-
-    // while((srcEntry = readdir(src)) != NULL)
-    // {
-    //   getFilesPath(paths[0],paths[1], srcEntry->d_name, fp);
-    //   //printf("%s\n",fp[0]);
-    //   //printf("%s\n",fp[1]);
-    //   if(srcEntry->d_type != 4)
-    //   {
-        
-    //     if(checkExistence(dst,srcEntry->d_name) == 1)
-    //     {
-    //       copy(fp);
-    //       //syslog(LOG_INFO, "Daemon copied files.");
-    //     }
-    //     else if(checkExistence(dst,srcEntry->d_name) == 0 && cmpModificationDate(fp) == 1)
-    //     {
-    //       copy(fp);
-    //       //syslog(LOG_INFO, "Daemon detected modified files, updating.");
-    //     }
-    //   }
-    //   else
-    //   {
-    //     if(strcmp(srcEntry->d_name,".") != 0 && strcmp(srcEntry->d_name,"..") != 0)
-    //     {
-          
-    //       // if(checkExistence(dst,srcEntry->d_name) == 1)
-    //       // {
-    //          mkdir(fp[1], 0775);
-    //          recursiveCopy(fp);
-    //       // }
-    //       // else if(checkExistence(dst,srcEntry->d_name) == 0 && cmpModificationDate(fp) == 1)
-    //       // {
-    //       //   mkdir(fp[1], 0775);
-    //       //   recursiveCopy(fp);
-    //       // }
-    //     }
-    //   }
-    // }
-    // //free(fp[0]);
-    // //free(fp[1]);
-    // closedir(src);
-    // closedir(dst);
 }
 
 off_t getFileSize(char *path)
@@ -137,32 +74,104 @@ off_t getFileSize(char *path)
     struct stat fileSB;
     if(stat(path, &fileSB) != 0)
         return -1;
-
-    //printf("%ld",fileSB.st_size);
-
     return fileSB.st_size;
 }
 
-void mmapCopy(char **paths)
+void mmapCopy(char *source, char *destination)
 {
-    size_t size = getFileSize(paths[0]);
-    int srcFD = open(paths[0], O_RDONLY);
-    int dstFD = open(paths[1], O_RDWR | O_CREAT, 0666);
-
+    size_t size = getFileSize(source);
+    int srcFD = open(source, O_RDONLY);
+    int dstFD = open(destination, O_RDWR | O_CREAT, 0666);
     
-    char *source = mmap(NULL, size, PROT_READ, MAP_PRIVATE, srcFD, 0);
+    char *src = mmap(NULL, size, PROT_READ, MAP_PRIVATE, srcFD, 0);
     ftruncate(dstFD, size);
-    char *destination = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, dstFD, 0);
-    
+    char *dst = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, dstFD, 0);
 
-    memcpy(destination, source, size);
-    //printf("abc\n");
+    memcpy(dst, src, size);
 
-    munmap(source, size);
-    munmap(destination, size);
+    munmap(src, size);
+    munmap(dst, size);
 
     close(srcFD);
     close(dstFD);
-    //printf("%ld\n", size);
 }
+
+void recursiveCopy(char *source, char* destination, off_t filesize)
+{
+    //printf("%s\n", source);
+
+    DIR *src = opendir(source);
+    DIR *dst = opendir(destination);
+    struct dirent *srcEntry;
+
+    char srcPath[512];
+    char dstPath[512];
+
+    strcpy(srcPath, source);
+    strcpy(dstPath, destination);
+
+    strcat(srcPath, "/");
+    strcat(dstPath, "/");
+
+    while((srcEntry = readdir(src)) != NULL)
+    {
+        if(strcmp(srcEntry->d_name,".") == 0 || strcmp(srcEntry->d_name,"..") == 0)
+            continue;
+        if(srcEntry->d_type != DT_DIR)
+        {
+            strcat(srcPath, srcEntry->d_name);
+            strcat(dstPath, srcEntry->d_name);
+
+            if(checkExistence(dst,srcEntry->d_name) == 1)
+            {
+                if(getFileSize(srcPath) >= filesize)
+                {
+                    mmapCopy(srcPath, dstPath);
+                }
+                else
+                {
+                    copy(srcPath,dstPath);
+                    //syslog(LOG_INFO, "Daemon copied files.");
+                }
+            }
+            else if(checkExistence(dst,srcEntry->d_name) == 0 && cmpModificationDate(srcPath,dstPath) == 1)
+            {
+                if(getFileSize(srcPath) >= filesize)
+                {
+                    mmapCopy(srcPath, dstPath);
+                }
+                else
+                {
+                    copy(srcPath, dstPath);
+                    //syslog(LOG_INFO, "Daemon copied files.");
+                }
+            }
+            
+            srcPath[strlen(srcPath) - strlen(srcEntry->d_name)] = '\0';
+            dstPath[strlen(dstPath) - strlen(srcEntry->d_name)] = '\0';
+        }
+        else if(srcEntry->d_type == DT_DIR)
+        {
+            strcat(srcPath, srcEntry->d_name);
+            strcat(dstPath, srcEntry->d_name);
+
+            if(checkExistence(dst,srcEntry->d_name) == 1)
+            {
+                mkdir(dstPath, 0775);
+                recursiveCopy(srcPath, dstPath, filesize);
+            }
+            else if(checkExistence(dst,srcEntry->d_name) == 0 && cmpModificationDate(srcPath, dstPath) == 1)
+            {
+                mkdir(dstPath, 0775);
+                recursiveCopy(srcPath, dstPath, filesize);
+            }
+
+            srcPath[strlen(srcPath) - strlen(srcEntry->d_name)] = '\0';
+            dstPath[strlen(dstPath) - strlen(srcEntry->d_name)] = '\0';
+        }
+    }
+    closedir(src);
+    closedir(dst);
+}
+
 
