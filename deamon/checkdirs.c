@@ -46,11 +46,11 @@ int checkdirs(char *argv[])
     return 0;
 }
 
-void deleteExcessiveFiles(char *argv[])
+void deleteExcessiveFiles(char *source, char *destination)
 {
 
-    DIR *src = opendir(argv[1]);
-    DIR *dst = opendir(argv[2]);
+    DIR *src = opendir(source);
+    DIR *dst = opendir(destination);
     struct dirent *sEnt;
     struct dirent *dEnt;
 
@@ -61,25 +61,19 @@ void deleteExcessiveFiles(char *argv[])
     while((dEnt = readdir(dst)) != NULL)
     {
         count = 0;
-        if(dEnt->d_type != 4)
+        rewinddir(src);
+        while((sEnt = readdir(src)) != NULL)
         {
-            rewinddir(src);
-            while((sEnt = readdir(src)) != NULL)
+            if(strcmp(dEnt->d_name, sEnt->d_name) == 0)
             {
-                if(sEnt->d_type != 4)
-                {
-                    if(strcmp(dEnt->d_name, sEnt->d_name) == 0)
-                    {
-                        count = 2;
-                    }
-                }
+                count = 2;
             }
-            if(count == 0)
-            {
-                getFilesPath(argv[1], argv[2], dEnt->d_name, fp);
-                syslog(LOG_INFO, "Daemon deleted file: %s", fp[1]);
-                remove(fp[1]);
-            }
+        }
+        if(count == 0)
+        {
+            getFilesPath(source, destination, dEnt->d_name, fp);
+            syslog(LOG_INFO, "Daemon deleted file: %s", fp[1]);
+            remove(fp[1]);
         }
     }
     closedir(src);
