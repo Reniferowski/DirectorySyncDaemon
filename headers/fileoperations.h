@@ -7,6 +7,10 @@ void getFilesPath(char *source, char *destination, char *filename, char **paths)
 
 int cmpModificationDate(char **paths);
 
-int recursiveCopy(char **paths);
+void recursiveCopy(char **paths);
+
+void mmapCopy(char **paths);
+
+off_t getFileSize(char *path);
 
 #endif

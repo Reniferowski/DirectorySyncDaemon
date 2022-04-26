@@ -23,6 +23,7 @@ void sigusr_handler(int sig) //SIGUSR1 handler
 int main(int argc, char *argv[])
 {
   int time = 300;
+  off_t filesize = 536870912; //base filesize (0.5 GiB) needed to trigger mmap copying
   if(argc < 3)
   {
     printf("Użycie programu: \n demon <katalog źródłowy> <katalog docelowy> [opcje]\n");
@@ -39,6 +40,8 @@ int main(int argc, char *argv[])
       case 'R': //set checking subdirectories on
         recursive = 1;
         break;
+      case 's': //set filesize needed to trigger mmap copying
+        filesize = atol(argv[4]);
       default:
         break;
     }
@@ -51,9 +54,6 @@ int main(int argc, char *argv[])
 
   //daemon(1,0);
   syslog(LOG_INFO, "Daemon initialized.");
-  //int fileCount[2];
-  //fileCount[0] = 0;
-  //fileCount[1] = 0;
   DIR *source, *target;
   struct dirent *sEntry;
   char *fp[2];//files path holder
@@ -62,8 +62,7 @@ int main(int argc, char *argv[])
   while(1)
   {
     //syslog(LOG_INFO, "Daemon goes to sleep.");
-    sleep(time/30);
-    printf("abc\n");
+    sleep(time/60);
     if(sigCheck == 0)
       //syslog(LOG_INFO, "Daemon awoken.");
     source = opendir(argv[1]);
@@ -75,34 +74,48 @@ int main(int argc, char *argv[])
       getFilesPath(argv[1], argv[2], sEntry->d_name, fp);
       if(sEntry->d_type != 4)
       {
-        
         if(checkExistence(target,sEntry->d_name) == 1)
         {
-          copy(fp);
-          syslog(LOG_INFO, "Daemon copied files.");
+          if(getFileSize(fp[0]) >= filesize)
+          {
+            printf("%ld\n",getFileSize(fp[0]));
+            mmapCopy(fp);
+          }
+          else
+          {
+            copy(fp);
+            //syslog(LOG_INFO, "Daemon copied files.");
+          }
         }
         else if(checkExistence(target,sEntry->d_name) == 0 && cmpModificationDate(fp) == 1)
         {
-          copy(fp);
-          syslog(LOG_INFO, "Daemon detected modified files, updating.");
+          if(getFileSize(fp[0]) >= filesize)
+          {
+            printf("%ld",getFileSize(fp[0]));
+            mmapCopy(fp);
+          }
+          else
+          {
+            copy(fp);
+            //syslog(LOG_INFO, "Daemon copied files.");
+          }
         }
       }
-      else if(recursive == 1)
-      {
-        // if(strcmp(sEntry->d_name,".") != 0 && strcmp(sEntry->d_name,"..") != 0)
-        // {
-        //   if(checkExistence(target,sEntry->d_name) == 1)
-        //   {
-        //     mkdir(fp[1], 0775);
-        //     recursiveCopy(fp);
-        //   }
-        //   else if(checkExistence(target,sEntry->d_name) == 0 && cmpModificationDate(fp) == 1)
-        //   {
-        //     mkdir(fp[1], 0775);
-        //     recursiveCopy(fp);
-        //   }
-        // }
-      }
+      // else if(recursive == 1)
+      // {
+      //   if(strcmp(sEntry->d_name,".") == 0 || strcmp(sEntry->d_name,"..") == 0)
+      //     continue;
+      //   if(checkExistence(target,sEntry->d_name) == 1)
+      //   {
+      //     //mkdir(fp[1], 0775);
+      //     recursiveCopy(fp);
+      //   }
+      //   else if(checkExistence(target,sEntry->d_name) == 0 && cmpModificationDate(fp) == 1)
+      //   {
+      //     //mkdir(fp[1], 0775);
+      //     recursiveCopy(fp);
+      //   }
+      // }
     }
     rewinddir(source);
     rewinddir(target);

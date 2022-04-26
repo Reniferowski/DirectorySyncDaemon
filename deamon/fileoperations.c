@@ -7,6 +7,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <time.h>
+#include <sys/mman.h>
 
 #include "../headers/checkdirs.h"
 
@@ -66,53 +67,102 @@ int cmpModificationDate(char **paths)
 
 }
 
-int recursiveCopy(char **paths)
+void recursiveCopy(char **paths)
 {
-    printf("ddd\n");
+    int count = 0;
+    printf("%s\n", paths[0]);
+    //printf("%s\n", paths[1]);
     DIR *src = opendir(paths[0]);
-    DIR *dst = opendir(paths[1]);
+    //if(!(src = opendir(paths[0])))
+    //    return;
+    //printf("ddd\n");
+    //DIR *dst = opendir(paths[1]);
     struct dirent *srcEntry;
     char *fp[2];
+    // while((srcEntry = readdir(src)) != NULL)
+    // {
+    //   if(srcEntry->d_type == 4)
+    //     count++;
+    // }
 
-    while((srcEntry = readdir(src)) != NULL)
-    {
-      getFilesPath(paths[0],paths[1], srcEntry->d_name, fp);
-      printf("%s\n",fp[1]);
-      if(srcEntry->d_type != 4)
-      {
+    // printf("%d\n", count);
+
+    // rewinddir(src);
+
+    // while((srcEntry = readdir(src)) != NULL)
+    // {
+    //   getFilesPath(paths[0],paths[1], srcEntry->d_name, fp);
+    //   //printf("%s\n",fp[0]);
+    //   //printf("%s\n",fp[1]);
+    //   if(srcEntry->d_type != 4)
+    //   {
         
-        if(checkExistence(dst,srcEntry->d_name) == 1)
-        {
-          copy(fp);
-          //syslog(LOG_INFO, "Daemon copied files.");
-        }
-        else if(checkExistence(dst,srcEntry->d_name) == 0 && cmpModificationDate(fp) == 1)
-        {
-          copy(fp);
-          //syslog(LOG_INFO, "Daemon detected modified files, updating.");
-        }
-      }
-      else
-      {
-        if(strcmp(srcEntry->d_name,".") != 0 && strcmp(srcEntry->d_name,"..") != 0)
-        {
+    //     if(checkExistence(dst,srcEntry->d_name) == 1)
+    //     {
+    //       copy(fp);
+    //       //syslog(LOG_INFO, "Daemon copied files.");
+    //     }
+    //     else if(checkExistence(dst,srcEntry->d_name) == 0 && cmpModificationDate(fp) == 1)
+    //     {
+    //       copy(fp);
+    //       //syslog(LOG_INFO, "Daemon detected modified files, updating.");
+    //     }
+    //   }
+    //   else
+    //   {
+    //     if(strcmp(srcEntry->d_name,".") != 0 && strcmp(srcEntry->d_name,"..") != 0)
+    //     {
           
-          if(checkExistence(dst,srcEntry->d_name) == 1)
-          {
-            mkdir(fp[1], 0775);
-            recursiveCopy(fp);
-          }
-          else if(checkExistence(dst,srcEntry->d_name) == 0 && cmpModificationDate(fp) == 1)
-          {
-            mkdir(fp[1], 0775);
-            recursiveCopy(fp);
-          }
-        }
-      }
-    }
-    //free(fp[0]);
-    //free(fp[1]);
-    closedir(src);
-    closedir(dst);
-    return 1;
+    //       // if(checkExistence(dst,srcEntry->d_name) == 1)
+    //       // {
+    //          mkdir(fp[1], 0775);
+    //          recursiveCopy(fp);
+    //       // }
+    //       // else if(checkExistence(dst,srcEntry->d_name) == 0 && cmpModificationDate(fp) == 1)
+    //       // {
+    //       //   mkdir(fp[1], 0775);
+    //       //   recursiveCopy(fp);
+    //       // }
+    //     }
+    //   }
+    // }
+    // //free(fp[0]);
+    // //free(fp[1]);
+    // closedir(src);
+    // closedir(dst);
 }
+
+off_t getFileSize(char *path)
+{
+    struct stat fileSB;
+    if(stat(path, &fileSB) != 0)
+        return -1;
+
+    //printf("%ld",fileSB.st_size);
+
+    return fileSB.st_size;
+}
+
+void mmapCopy(char **paths)
+{
+    size_t size = getFileSize(paths[0]);
+    int srcFD = open(paths[0], O_RDONLY);
+    int dstFD = open(paths[1], O_RDWR | O_CREAT, 0666);
+
+    
+    char *source = mmap(NULL, size, PROT_READ, MAP_PRIVATE, srcFD, 0);
+    ftruncate(dstFD, size);
+    char *destination = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, dstFD, 0);
+    
+
+    memcpy(destination, source, size);
+    //printf("abc\n");
+
+    munmap(source, size);
+    munmap(destination, size);
+
+    close(srcFD);
+    close(dstFD);
+    //printf("%ld\n", size);
+}
+
