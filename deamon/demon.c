@@ -57,8 +57,8 @@ int main(int argc, char *argv[])
   DIR *source, *target;
   struct dirent *sEntry;
   char *fp[2];//files path holder
-
   signal(SIGUSR1, sigusr_handler);
+
   while(1)
   {
     //syslog(LOG_INFO, "Daemon goes to sleep.");
@@ -68,54 +68,52 @@ int main(int argc, char *argv[])
     source = opendir(argv[1]);
     target = opendir(argv[2]);
     //countFiles(source, target, fileCount);//number of src files, and number of dst files
-    deleteExcessiveFiles(argv);
+    deleteExcessiveFiles(argv[1], argv[2]);
     while((sEntry = readdir(source)) != NULL)
     {
       getFilesPath(argv[1], argv[2], sEntry->d_name, fp);
-      if(sEntry->d_type != 4)
+      if(sEntry->d_type != DT_DIR)
       {
         if(checkExistence(target,sEntry->d_name) == 1)
         {
           if(getFileSize(fp[0]) >= filesize)
           {
-            printf("%ld\n",getFileSize(fp[0]));
-            mmapCopy(fp);
+            mmapCopy(fp[0], fp[1]);
           }
           else
           {
-            copy(fp);
+            copy(fp[0], fp[1]);
             //syslog(LOG_INFO, "Daemon copied files.");
           }
         }
-        else if(checkExistence(target,sEntry->d_name) == 0 && cmpModificationDate(fp) == 1)
+        else if(checkExistence(target,sEntry->d_name) == 0 && cmpModificationDate(fp[0], fp[1]) == 1)
         {
           if(getFileSize(fp[0]) >= filesize)
           {
-            printf("%ld",getFileSize(fp[0]));
-            mmapCopy(fp);
+            mmapCopy(fp[0], fp[1]);
           }
           else
           {
-            copy(fp);
+            copy(fp[0], fp[1]);
             //syslog(LOG_INFO, "Daemon copied files.");
           }
         }
       }
-      // else if(recursive == 1)
-      // {
-      //   if(strcmp(sEntry->d_name,".") == 0 || strcmp(sEntry->d_name,"..") == 0)
-      //     continue;
-      //   if(checkExistence(target,sEntry->d_name) == 1)
-      //   {
-      //     //mkdir(fp[1], 0775);
-      //     recursiveCopy(fp);
-      //   }
-      //   else if(checkExistence(target,sEntry->d_name) == 0 && cmpModificationDate(fp) == 1)
-      //   {
-      //     //mkdir(fp[1], 0775);
-      //     recursiveCopy(fp);
-      //   }
-      // }
+      else if(recursive == 1 && sEntry->d_type == DT_DIR)
+      {
+        if(strcmp(sEntry->d_name,".") == 0 || strcmp(sEntry->d_name,"..") == 0)
+          continue;
+        if(checkExistence(target,sEntry->d_name) == 1)
+        {
+          mkdir(fp[1], 0775);
+          recursiveCopy(fp[0], fp[1], filesize);
+        }
+        else if(checkExistence(target,sEntry->d_name) == 0 && cmpModificationDate(fp[0], fp[1]) == 1)
+        {
+          mkdir(fp[1], 0775);
+          recursiveCopy(fp[0], fp[1], filesize);
+        }
+      }
     }
     rewinddir(source);
     rewinddir(target);
