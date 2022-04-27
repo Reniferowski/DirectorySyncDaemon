@@ -46,9 +46,8 @@ int checkdirs(char *argv[])
     return 0;
 }
 
-void deleteExcessiveFiles(char *source, char *destination)
+void deleteExcessiveFiles(char *source, char *destination, int recur)
 {
-
     DIR *src = opendir(source);
     DIR *dst = opendir(destination);
     struct dirent *sEnt;
@@ -56,25 +55,48 @@ void deleteExcessiveFiles(char *source, char *destination)
 
     int count;
 
-    char *fp[2];
+    char srcPath[512];
+    char dstPath[512];
+
+    strcpy(srcPath, source);
+    strcpy(dstPath, destination);
+
+    strcat(srcPath, "/");
+    strcat(dstPath, "/");
 
     while((dEnt = readdir(dst)) != NULL)
     {
         count = 0;
+        strcat(srcPath, dEnt->d_name);
+        strcat(dstPath, dEnt->d_name);
+
         rewinddir(src);
         while((sEnt = readdir(src)) != NULL)
         {
+            if(strcmp(sEnt->d_name,".") == 0 || strcmp(sEnt->d_name,"..") == 0)
+                continue;
             if(strcmp(dEnt->d_name, sEnt->d_name) == 0)
             {
-                count = 2;
+                if(sEnt->d_type == DT_DIR && cmpModificationDate(srcPath, dstPath) == 0 && recur == 1)
+                {
+                    deleteExcessiveFiles(srcPath, dstPath, recur);
+                    count = 2;
+                }
+                else
+                    count = 2;
             }
         }
         if(count == 0)
         {
-            getFilesPath(source, destination, dEnt->d_name, fp);
-            syslog(LOG_INFO, "Daemon deleted file: %s", fp[1]);
-            remove(fp[1]);
+            if(dEnt->d_type == DT_DIR)
+                syslog(LOG_INFO, "Daemon deleted directory: %s", dstPath);
+            else
+                syslog(LOG_INFO, "Daemon deleted file: %s", dstPath);
+            remove(dstPath);
         }
+
+        srcPath[strlen(srcPath) - strlen(dEnt->d_name)] = '\0';
+        dstPath[strlen(dstPath) - strlen(dEnt->d_name)] = '\0';
     }
     closedir(src);
     closedir(dst);

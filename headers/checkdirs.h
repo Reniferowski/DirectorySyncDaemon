@@ -3,7 +3,7 @@
 
 int checkdirs(char *argv[]);
 
-void deleteExcessiveFiles(char *source, char *destination);
+void deleteExcessiveFiles(char *source, char *destination, int recur);
 
 int checkExistence(DIR *dst, char *filename);
 
