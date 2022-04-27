@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include <sys/mman.h>
+#include <syslog.h>
 
 #include "../headers/checkdirs.h"
 
@@ -15,9 +16,6 @@
 
 void getFilesPath(char *source, char *destination, char *filename, char **paths)
 {
-    //int x = strlen(source) + strlen(filename);
-    //int y = strlen(destination) + strlen(filename);
-    //printf("%s\n", source);
     paths[0] = strdup(source);
     paths[1] = strdup(destination);
 
@@ -26,7 +24,6 @@ void getFilesPath(char *source, char *destination, char *filename, char **paths)
     
     strcat(paths[0], filename);
     strcat(paths[1], filename);
-
 }
 
 int copy(char *source, char *destination)
@@ -47,7 +44,6 @@ int copy(char *source, char *destination)
 
     close(src);
     close(dst);
-
 }
 
 int cmpModificationDate(char *source, char *destination)
@@ -66,7 +62,6 @@ int cmpModificationDate(char *source, char *destination)
         return 2;
     else
         return 0;
-
 }
 
 off_t getFileSize(char *path)
@@ -98,8 +93,6 @@ void mmapCopy(char *source, char *destination)
 
 void recursiveCopy(char *source, char* destination, off_t filesize)
 {
-    //printf("%s\n", source);
-
     DIR *src = opendir(source);
     DIR *dst = opendir(destination);
     struct dirent *srcEntry;
@@ -127,11 +120,12 @@ void recursiveCopy(char *source, char* destination, off_t filesize)
                 if(getFileSize(srcPath) >= filesize)
                 {
                     mmapCopy(srcPath, dstPath);
+                    syslog(LOG_INFO, "Daemon copied files using mmap.");
                 }
                 else
                 {
                     copy(srcPath,dstPath);
-                    //syslog(LOG_INFO, "Daemon copied files.");
+                    syslog(LOG_INFO, "Daemon copied files.");
                 }
             }
             else if(checkExistence(dst,srcEntry->d_name) == 0 && cmpModificationDate(srcPath,dstPath) == 1)
@@ -139,11 +133,12 @@ void recursiveCopy(char *source, char* destination, off_t filesize)
                 if(getFileSize(srcPath) >= filesize)
                 {
                     mmapCopy(srcPath, dstPath);
+                    syslog(LOG_INFO, "Daemon copied files using mmap.");
                 }
                 else
                 {
                     copy(srcPath, dstPath);
-                    //syslog(LOG_INFO, "Daemon copied files.");
+                    syslog(LOG_INFO, "Daemon copied files.");
                 }
             }
             
@@ -158,11 +153,13 @@ void recursiveCopy(char *source, char* destination, off_t filesize)
             if(checkExistence(dst,srcEntry->d_name) == 1)
             {
                 mkdir(dstPath, 0775);
+                syslog(LOG_INFO, "Daemon copied directory.");
                 recursiveCopy(srcPath, dstPath, filesize);
             }
             else if(checkExistence(dst,srcEntry->d_name) == 0 && cmpModificationDate(srcPath, dstPath) == 1)
             {
                 mkdir(dstPath, 0775);
+                syslog(LOG_INFO, "Daemon copied directory.");
                 recursiveCopy(srcPath, dstPath, filesize);
             }
 
