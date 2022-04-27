@@ -23,27 +23,46 @@ void sigusr_handler(int sig) //SIGUSR1 handler
 int main(int argc, char *argv[])
 {
   int time = 300;
-  off_t filesize = 536870912; //base filesize (0.5 GiB) needed to trigger mmap copying
-  if(argc < 3)
+  off_t filesize = 512; //base filesize (0.5 GiB) needed to trigger mmap copying
+
+  if(argc == 2 && strcmp(argv[1], "-h") == 0)
   {
-    printf("Użycie programu: \n demon <katalog źródłowy> <katalog docelowy> [opcje]\n");
+    printf("Użycie programu: ./demon <katalog źródłowy> <katalog docelowy> [opcje]\n");
+    printf("Opcje:\n\n");
+    printf("  -R: Uruchamia rekurencyjne kopiowanie katalogów.\n\n");
+    printf("  -t <liczba>: Ustawia czas oczekiwania demona na liczba minut, bazowa wartość wynosi 5 minut.\n\n");
+    printf("  -s <liczba>: Ustawia próg wielkości pliku (w megabajtach).\n");
+    printf("               Gdy plik przekroczy próg, kopiowany jest poprzez mmap.\n");
+    printf("               Bazowy próg wynosi 512 megabajtów.\n");
+    return 1;
+  }
+  else if(argc < 3)
+  {
+    printf("Użycie programu: ./demon <katalog źródłowy> <katalog docelowy> [opcje]\n");
+    printf("Użycie: ./demon -h wypisze dostępne opcje.\n");
     return 1;
   }
 
-  if(argc > 3 && argv[3][0] == '-')
+  if(argc > 3)
   {
-    switch(argv[3][1])
+    for(int i = 3; i<argc; i++)
     {
-      case 't': //set daemon sleep time
-        time = atoi(argv[4])*60;
-        break;
-      case 'R': //set checking subdirectories on
-        recursive = 1;
-        break;
-      case 's': //set filesize needed to trigger mmap copying
-        filesize = atol(argv[4]);
-      default:
-        break;
+      if(argv[i][0] == '-')
+      {
+        switch(argv[i][1])
+        {
+          case 't': //set daemon sleep time
+            time = atoi(argv[i+1])*60;
+            break;
+          case 'R': //set checking subdirectories on
+            recursive = 1;
+            break;
+          case 's': //set filesize needed to trigger mmap copying
+            filesize = atol(argv[i+1])*1024*1024;
+          default:
+            break;
+        }
+      }
     }
   }
 
@@ -52,7 +71,7 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  //daemon(1,0);
+  daemon(1,0);
   syslog(LOG_INFO, "Daemon initialized.");
   DIR *source, *target;
   struct dirent *sEntry;
@@ -61,14 +80,16 @@ int main(int argc, char *argv[])
 
   while(1)
   {
-    //syslog(LOG_INFO, "Daemon goes to sleep.");
-    sleep(time/60);
+    syslog(LOG_INFO, "Daemon goes to sleep.");
+    sleep(time);
     if(sigCheck == 0)
-      //syslog(LOG_INFO, "Daemon awoken.");
+      syslog(LOG_INFO, "Daemon awoken.");
+      
     source = opendir(argv[1]);
     target = opendir(argv[2]);
-    //countFiles(source, target, fileCount);//number of src files, and number of dst files
-    deleteExcessiveFiles(argv[1], argv[2]);
+
+    deleteExcessiveFiles(argv[1], argv[2], recursive);
+
     while((sEntry = readdir(source)) != NULL)
     {
       getFilesPath(argv[1], argv[2], sEntry->d_name, fp);
@@ -79,11 +100,12 @@ int main(int argc, char *argv[])
           if(getFileSize(fp[0]) >= filesize)
           {
             mmapCopy(fp[0], fp[1]);
+            syslog(LOG_INFO, "Daemon copied files using mmap.");
           }
           else
           {
             copy(fp[0], fp[1]);
-            //syslog(LOG_INFO, "Daemon copied files.");
+            syslog(LOG_INFO, "Daemon copied files.");
           }
         }
         else if(checkExistence(target,sEntry->d_name) == 0 && cmpModificationDate(fp[0], fp[1]) == 1)
@@ -91,11 +113,12 @@ int main(int argc, char *argv[])
           if(getFileSize(fp[0]) >= filesize)
           {
             mmapCopy(fp[0], fp[1]);
+            syslog(LOG_INFO, "Daemon copied files using mmap.");
           }
           else
           {
             copy(fp[0], fp[1]);
-            //syslog(LOG_INFO, "Daemon copied files.");
+            syslog(LOG_INFO, "Daemon copied files.");
           }
         }
       }
@@ -106,23 +129,19 @@ int main(int argc, char *argv[])
         if(checkExistence(target,sEntry->d_name) == 1)
         {
           mkdir(fp[1], 0775);
+          syslog(LOG_INFO, "Daemon copied directory.");
           recursiveCopy(fp[0], fp[1], filesize);
         }
         else if(checkExistence(target,sEntry->d_name) == 0 && cmpModificationDate(fp[0], fp[1]) == 1)
         {
           mkdir(fp[1], 0775);
+          syslog(LOG_INFO, "Daemon copied directory.");
           recursiveCopy(fp[0], fp[1], filesize);
         }
       }
     }
     rewinddir(source);
     rewinddir(target);
-    //fileCount[0] = 0;
-    //fileCount[1] = 0;
-    //closedir(target);
-    //closedir(source);
     sigCheck = 0;
   }
 }
-
-  //d_type: 8 - file, 4 - dir
