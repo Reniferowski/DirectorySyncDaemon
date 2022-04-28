@@ -69,3 +69,4 @@ dkms.conf
 
 #vsc stuff
 .vscode
+.vscode/settings.json
