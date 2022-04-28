@@ -6,11 +6,12 @@
 #include <dirent.h>
 #include <string.h>
 #include <syslog.h>
+#include <ftw.h>
 
 #include "../headers/checkdirs.h"
 #include "../headers/fileoperations.h"
 
-int checkdirs(char *argv[])
+int checkdirs(char *argv[]) //checking if given paths are correct 
 {
     struct stat sb1;
     struct stat sb2;
@@ -46,63 +47,97 @@ int checkdirs(char *argv[])
     return 0;
 }
 
-void deleteExcessiveFiles(char *source, char *destination, int recur)
+int countFiles(char *path) //count files(and directories w/o . and ..) in directory
 {
-    DIR *src = opendir(source);
-    DIR *dst = opendir(destination);
+    DIR *src = opendir(path);
+    struct dirent *entry;
+    int count = 0;
+
+    while((entry = readdir(src)) != NULL)
+    {
+        if(strcmp(entry->d_name,".") == 0 || strcmp(entry->d_name,"..") == 0)
+            continue;
+        count++;
+    }
+
+    closedir(src);
+    return count;
+}
+
+void deleteExcessiveFiles(char *source, char *destination, int recur) // delete excessive files from destination dir
+{
+    DIR *src;
     struct dirent *sEnt;
+    int flag = 0;
+    char srcPath[512];
+    if((src = opendir(source)) != NULL)
+    {
+        strcpy(srcPath, source);
+        strcat(srcPath, "/");
+    }
+    else
+        flag = 1;
+    DIR *dst = opendir(destination);
     struct dirent *dEnt;
+    char dstPath[512];
+    strcpy(dstPath, destination);
+    strcat(dstPath, "/");
 
     int count;
 
-    char srcPath[512];
-    char dstPath[512];
-
-    strcpy(srcPath, source);
-    strcpy(dstPath, destination);
-
-    strcat(srcPath, "/");
-    strcat(dstPath, "/");
-
     while((dEnt = readdir(dst)) != NULL)
     {
+        if(strcmp(dEnt->d_name,".") == 0 || strcmp(dEnt->d_name,"..") == 0)
+            continue;
         count = 0;
         strcat(srcPath, dEnt->d_name);
         strcat(dstPath, dEnt->d_name);
-
-        rewinddir(src);
-        while((sEnt = readdir(src)) != NULL)
+        if(flag == 0)
         {
-            if(strcmp(sEnt->d_name,".") == 0 || strcmp(sEnt->d_name,"..") == 0)
-                continue;
-            if(strcmp(dEnt->d_name, sEnt->d_name) == 0)
+            rewinddir(src);
+            while((sEnt = readdir(src)) != NULL)
             {
-                if(sEnt->d_type == DT_DIR && cmpModificationDate(srcPath, dstPath) == 0 && recur == 1)
+                if(strcmp(sEnt->d_name,".") == 0 || strcmp(sEnt->d_name,"..") == 0)
+                    continue;
+                if(strcmp(dEnt->d_name, sEnt->d_name) == 0)
                 {
-                    deleteExcessiveFiles(srcPath, dstPath, recur);
                     count = 2;
+                    if(sEnt->d_type == DT_DIR && cmpModificationDate(srcPath, dstPath) == 0 && recur == 1)
+                    {
+                        deleteExcessiveFiles(srcPath, dstPath, recur);
+                    }
                 }
-                else
-                    count = 2;
             }
         }
         if(count == 0)
         {
             if(dEnt->d_type == DT_DIR)
+            {
+                if(countFiles(dstPath) > 0)
+                {
+                    printf("%d\n", countFiles(dstPath));
+                    printf("%s\n", dstPath);
+                    deleteExcessiveFiles(srcPath, dstPath, recur);
+                }
                 syslog(LOG_INFO, "Daemon deleted directory: %s", dstPath);
+                remove(dstPath);
+            }
             else
+            {
                 syslog(LOG_INFO, "Daemon deleted file: %s", dstPath);
-            remove(dstPath);
+                remove(dstPath);
+            }
         }
 
         srcPath[strlen(srcPath) - strlen(dEnt->d_name)] = '\0';
         dstPath[strlen(dstPath) - strlen(dEnt->d_name)] = '\0';
     }
-    closedir(src);
+    if(flag == 0)
+        closedir(src);
     closedir(dst);
 }
 
-int checkExistence(DIR *dst, char *filename)
+int checkExistence(DIR *dst, char *filename) //checking if file exists in directory
 {
     struct dirent *dEnt;
 
