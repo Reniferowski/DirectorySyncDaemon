@@ -16,6 +16,6 @@
     - każdy log posiada aktualną datę :white_check_mark:
 
 Dodatkowo:
-1. Opcjonalny argument -R, który pozwala synchronizować również podkatalogi
-2. Zmiana metody kopiowania zależna od rozmiaru kopiowanych plików
-    - Można ustawić próg dodając opcjonalny argument
+1. Opcjonalny argument -R, który pozwala synchronizować również podkatalogi :white_check_mark:
+2. Zmiana metody kopiowania zależna od rozmiaru kopiowanych plików :white_check_mark:
+    - Można ustawić próg dodając opcjonalny argument :white_check_mark:
