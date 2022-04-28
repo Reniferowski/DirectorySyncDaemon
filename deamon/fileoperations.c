@@ -14,19 +14,7 @@
 
 #define BUFFER 1024
 
-void getFilesPath(char *source, char *destination, char *filename, char **paths)
-{
-    paths[0] = strdup(source);
-    paths[1] = strdup(destination);
-
-    strcat(paths[0], "/");
-    strcat(paths[1], "/");
-    
-    strcat(paths[0], filename);
-    strcat(paths[1], filename);
-}
-
-int copy(char *source, char *destination)
+int copy(char *source, char *destination) //copy files
 {
     char buf[BUFFER];
 
@@ -46,7 +34,7 @@ int copy(char *source, char *destination)
     close(dst);
 }
 
-int cmpModificationDate(char *source, char *destination)
+int cmpModificationDate(char *source, char *destination) // comparision of modification dates of a given file
 {
     struct stat sbSrc;
     struct stat sbDst;
@@ -72,7 +60,7 @@ off_t getFileSize(char *path)
     return fileSB.st_size;
 }
 
-void mmapCopy(char *source, char *destination)
+void mmapCopy(char *source, char *destination) //copy bigger files using memory mapping
 {
     size_t size = getFileSize(source);
     int srcFD = open(source, O_RDONLY);
@@ -91,7 +79,7 @@ void mmapCopy(char *source, char *destination)
     close(dstFD);
 }
 
-void recursiveCopy(char *source, char* destination, off_t filesize)
+void recursiveCopy(char *source, char* destination, off_t filesize) //recursive copying files and directories
 {
     DIR *src = opendir(source);
     DIR *dst = opendir(destination);
@@ -110,11 +98,10 @@ void recursiveCopy(char *source, char* destination, off_t filesize)
     {
         if(strcmp(srcEntry->d_name,".") == 0 || strcmp(srcEntry->d_name,"..") == 0)
             continue;
+        strcat(srcPath, srcEntry->d_name);
+        strcat(dstPath, srcEntry->d_name);
         if(srcEntry->d_type != DT_DIR)
         {
-            strcat(srcPath, srcEntry->d_name);
-            strcat(dstPath, srcEntry->d_name);
-
             if(checkExistence(dst,srcEntry->d_name) == 1)
             {
                 if(getFileSize(srcPath) >= filesize)
@@ -130,6 +117,7 @@ void recursiveCopy(char *source, char* destination, off_t filesize)
             }
             else if(checkExistence(dst,srcEntry->d_name) == 0 && cmpModificationDate(srcPath,dstPath) == 1)
             {
+                printf("%d\n", cmpModificationDate(srcPath, dstPath));
                 if(getFileSize(srcPath) >= filesize)
                 {
                     mmapCopy(srcPath, dstPath);
@@ -142,14 +130,9 @@ void recursiveCopy(char *source, char* destination, off_t filesize)
                 }
             }
             
-            srcPath[strlen(srcPath) - strlen(srcEntry->d_name)] = '\0';
-            dstPath[strlen(dstPath) - strlen(srcEntry->d_name)] = '\0';
         }
         else if(srcEntry->d_type == DT_DIR)
         {
-            strcat(srcPath, srcEntry->d_name);
-            strcat(dstPath, srcEntry->d_name);
-
             if(checkExistence(dst,srcEntry->d_name) == 1)
             {
                 mkdir(dstPath, 0775);
@@ -158,14 +141,11 @@ void recursiveCopy(char *source, char* destination, off_t filesize)
             }
             else if(checkExistence(dst,srcEntry->d_name) == 0 && cmpModificationDate(srcPath, dstPath) == 1)
             {
-                mkdir(dstPath, 0775);
-                syslog(LOG_INFO, "Daemon copied directory.");
                 recursiveCopy(srcPath, dstPath, filesize);
             }
-
-            srcPath[strlen(srcPath) - strlen(srcEntry->d_name)] = '\0';
-            dstPath[strlen(dstPath) - strlen(srcEntry->d_name)] = '\0';
         }
+        srcPath[strlen(srcPath) - strlen(srcEntry->d_name)] = '\0';
+        dstPath[strlen(dstPath) - strlen(srcEntry->d_name)] = '\0';
     }
     closedir(src);
     closedir(dst);
