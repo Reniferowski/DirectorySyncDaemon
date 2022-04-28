@@ -15,6 +15,7 @@ int sigCheck = 0; //flag to not send awakening logs two times(from signal and na
 int term = 0; //flag for SIGTERM handling
 int recursive = 0; // -R option flag
 int time = 300; //base sleep time
+off_t filesize = 512; //base filesize (0.5 GiB) needed to trigger mmap copying
 
 void sigusr_handler(int sig) //SIGUSR1 handler
 {
@@ -30,7 +31,6 @@ void sigterm_handler(int sig) //SIGTERM handler
 
 int main(int argc, char *argv[])
 {
-  off_t filesize = 512; //base filesize (0.5 GiB) needed to trigger mmap copying
 
   if(argc == 2 && strcmp(argv[1], "--help") == 0) //help
   {
